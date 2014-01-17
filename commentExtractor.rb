@@ -8,7 +8,7 @@ require 'spellchecker'
 #TODO: [preserving emoticon and symbols as part of bayes analysis]
 #This method processes the raw internet text into a formatted text that the filter can process
 def processString(text)
-	 encoding_options = {
+	encoding_options = {
     :invalid           => :replace,  # Replace invalid byte sequences
     :undef             => :replace,  # Replace anything not defined in ASCII
     :replace           => '',        # Use a blank for those replacements
@@ -21,7 +21,7 @@ def processString(text)
 	text = text.downcase
 	#c = c.gsub(/\\x[0-9a-zA-Z][0-9a-zA-Z]/, '')
 	text = text.encode Encoding.find('ASCII'), encoding_options
-	text = text.gsub(/[.,!?~\/\\*=-@#]/, '')
+	text = text.gsub(/[.,!?~\/\\*=-@#]/, ' ')
 	
 =begin
 	commons.each do |comm|
