@@ -2,7 +2,7 @@ require 'bishop'
 require 'obscenity'
 require 'engtagger'
 require 'wordnet'
-
+include WordNet
 
 #This simple code gets the comments from the formatted file and returns it as an array
 def getMessages(fileName)
@@ -36,7 +36,7 @@ def processWordnetOutput(text)
 	text = text.downcase
 	#c = c.gsub(/\\x[0-9a-zA-Z][0-9a-zA-Z]/, '')
 	text = text.encode Encoding.find('ASCII'), encoding_options
-	text = text.gsub("(n) ", '')
+	text = text.gsub(/\([a-z]\)/, '')
 	text = text.gsub(/[();!.1234567890"",]/, '')
 	
 =begin
@@ -52,8 +52,9 @@ end
 def wordTopicalData(word)
 	index = WordNet::NounIndex.instance
 	topicalData = ""
-	lemma = index.find(word)
-	if(lemma != nil)
+	lemmas = WordNetDB.find(word)
+	for i in 0..lemmas.size()-1
+		lemma = lemmas[i]
 		lemma.synsets.each{|a| topicalData = topicalData + processWordnetOutput(a.to_s)}
 		synset = lemma.synsets[0]
 	end
@@ -72,8 +73,8 @@ def getSensitive(sensitivesPath)
 				sensitiveTopics.push(topic)
 				topic = Array.new;topic.push("")
 			else
-				#puts line
-				topic[0]= topic[0].concat(" #{line.delete("\n")}")
+				puts line
+				topic[0]= topic[0].concat("-#{line.delete("\n")}")
 				#puts topic[0]
 				topic.concat(wordTopicalData(line.delete("\n")))
 			end
@@ -91,7 +92,8 @@ end
 system ("cls")
 #Here we declare and train our Bayes filter with identified messages
 
-subject = "bieber"
+subject = "rebecca"
+genSensitivePath = "testCases/#{subject}/genSensitives.txt"
 sensitivesPath = "testCases/#{subject}/sensitive.txt"
 nbMessagesPath = "testCases/#{subject}/nb.txt"
 bMessagesPath = "testCases/#{subject}/b.txt"
@@ -100,39 +102,70 @@ tagger = EngTagger.new
 classifier = Bishop::Bayes.new{ |probs,ignore| Bishop::robinson(probs, ignore) }
 
 
-#Sensitive Topics
-sensitiveTopics = getSensitive(sensitivesPath)
-sensitiveTopics.each do |topic|
-	puts "Topic: #{topic[0]} \n"
-	topic.delete_at(0)
-	puts topic.join(" ")
-	puts ""
+puts "#{subject} test case"
+puts ""
 
+#Sensitive Topics
+sensitiveTopics = Array.new
+#Does generated file exist?
+if(File.exist?(genSensitivePath))
+	puts "Pregenerated Sensitive data detected. Loading..."
+	puts ""
+	File.open(genSensitivePath, "r") do |infile|
+		#topical data is on a single line under 1 line of header
+		while (line = infile.gets)
+			line = infile.gets
+			sensitiveTopics.push( line.split(" "))
+		end
+	end
+	
+	puts "Sensitive Topic Data";puts ""
+	sensitiveTopics.each do |topic|
+		puts "Topic: #{topic[0]}   --------------------------------------------\n"
+		topic.delete_at(0)
+		puts topic.join(" ")
+		puts ""
+	end
+	
+else
+	puts "No pre-generated sensitive data detected. Generating..\n"
+	puts ""
+	sensitiveTopics = getSensitive(sensitivesPath)
+	File.open(genSensitivePath, 'w') {|f|		
+		
+		puts "Sensitive topic data";puts ""
+		sensitiveTopics.each do |topic|
+			f.write("#genTopic\n")
+			f.write(topic.join(" ")+"\n")
+			
+			puts "Topic: #{topic[0]}   --------------------------------------------\n"
+			topic.delete_at(0)
+			puts topic.join(" ")
+			puts ""
+
+			end
+		
+	}
 end
 
 wait() 
 
 #Training
 goodMessages = getMessages(nbMessagesPath )
-
+badMessages = getMessages(bMessagesPath)
 goodMessages.each do |m|
 	classifier.train("good",m)
 end
-
-badMessages = getMessages(bMessagesPath)
-
 badMessages.each do |m|
 	classifier.train("bad",m)
 end
 
 
-
-#TODO: Print out information on how 
 #TODO: [Sensitivity Analysis/Thematic filter is doing] 
 #TODO: [Profane filter is picking up the bad words]	
-#Here we test our filter. This counter prints 10 lines at a time
 
 
+#Calculating the results
 testMessages = getMessages(testMessagesPath)
 testScores = Array.new
 scoreSum = 0;size = 0
@@ -169,6 +202,8 @@ end
 t2 = Time.now
 avgScore = scoreSum/size
 
+
+#Printing results
 puts "Non-Bullying Messages"
 counter = 0;i=0;nbCount =0;
 testScores.each do |score|
@@ -210,9 +245,8 @@ testScores.each do |score|
 end
 
 
-
-
 wait()
+
 puts "Bhive Filter Report"
 puts ""
 puts "#{subject} test case"

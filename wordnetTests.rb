@@ -11,8 +11,9 @@ def processWordnetOutput(text)
 	text = text.downcase
 	#c = c.gsub(/\\x[0-9a-zA-Z][0-9a-zA-Z]/, '')
 	text = text.encode Encoding.find('ASCII'), encoding_options
-	text = text.gsub("(n) ", '')
+	text = text.gsub(/\([a-z]\)/, '')
 	text = text.gsub(/[();"",]/, '')
+	
 	
 =begin
 	commons.each do |comm|
@@ -24,21 +25,16 @@ def processWordnetOutput(text)
 	return text
 end
 
+
 system ("cls")
-index = WordNet::AdverbIndex.instance
+include WordNet
 topicalData = ""
 t1 = Time.now;
-lemma = index.find("quickly")
-lemma.synsets.each{|a| topicalData = topicalData + processWordnetOutput(a.to_s)}
-
+lemmas = WordNetDB.find("great")
+puts lemmas.size
+for i in 0..lemmas.size()-1
+lemma = lemmas[i]
+lemma.synsets.each{|a| puts processWordnetOutput(a.to_s)}
 synset = lemma.synsets[0]
-
-=begin
-puts "============Hypernyms"
-# Print the full hypernym derivation for the first sense of 'fruit'.
-synset.expanded_hypernym.each { |d| puts d }
-=end
-
-puts topicalData.split(" ")
-t2 = Time.now
-puts "Total Time: #{t2-t1}"
+puts "---"
+end

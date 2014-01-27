@@ -1,5 +1,7 @@
 require 'rubygems'
 require 'wordnet'
+require 'wordnet-defaultdb'
+#http://www.rubydoc.info/github/ged/ruby-wordnet/master/WordNet
 
 def processWordnetOutput(text)
 	encoding_options = {
@@ -24,21 +26,14 @@ def processWordnetOutput(text)
 	return text
 end
 
+
 system ("cls")
-index = WordNet::AdverbIndex.instance
-topicalData = ""
+#known bug https://bitbucket.org/ged/ruby-wordnet/issue/3/3-sqlite3-sqlexception-no-such-table
+
+lex = WordNet::Lexicon.new
 t1 = Time.now;
-lemma = index.find("quickly")
-lemma.synsets.each{|a| topicalData = topicalData + processWordnetOutput(a.to_s)}
+synset = lex[ :language ]
+puts synset
 
-synset = lemma.synsets[0]
-
-=begin
-puts "============Hypernyms"
-# Print the full hypernym derivation for the first sense of 'fruit'.
-synset.expanded_hypernym.each { |d| puts d }
-=end
-
-puts topicalData.split(" ")
-t2 = Time.now
+t2 = Time.now;
 puts "Total Time: #{t2-t1}"
