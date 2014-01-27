@@ -27,19 +27,17 @@ end
 
 system ("cls")
 index = WordNet::NounIndex.instance
-topicalData = ""
-t1 = Time.now;
-lemma = index.find("gay")
-lemma.synsets.each{|a| topicalData = topicalData + processWordnetOutput(a.to_s)}
 
+
+t1 = Time.now;
+lemma = index.find("bitch")
+lemma.synsets.each{|a| puts processWordnetOutput(a.to_s)}
 synset = lemma.synsets[0]
 
-=begin
+
 puts "============Hypernyms"
 # Print the full hypernym derivation for the first sense of 'fruit'.
 synset.expanded_hypernym.each { |d| puts d }
-=end
-
-puts topicalData.split(" ")
 t2 = Time.now
+
 puts "Total Time: #{t2-t1}"

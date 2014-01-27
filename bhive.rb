@@ -1,7 +1,7 @@
 require 'bishop' 
 require 'obscenity'
 require 'engtagger'
-
+require 'wordnet'
 
 
 #This simple code gets the comments from the formatted file and returns it as an array
@@ -26,8 +26,61 @@ def getMessages(fileName)
 	return comments
 end
 
-def extractTheme(message)
+def processWordnetOutput(text)
+	encoding_options = {
+    :invalid           => :replace,  # Replace invalid byte sequences
+    :undef             => :replace,  # Replace anything not defined in ASCII
+    :replace           => '',        # Use a blank for those replacements
+	}
 
+	text = text.downcase
+	#c = c.gsub(/\\x[0-9a-zA-Z][0-9a-zA-Z]/, '')
+	text = text.encode Encoding.find('ASCII'), encoding_options
+	text = text.gsub("(n) ", '')
+	text = text.gsub(/[();!.1234567890"",]/, '')
+	
+=begin
+	commons.each do |comm|
+		text = text.gsub(/ #{comm} /, ' ')
+	end
+=end
+	
+	
+	return text
+end
+
+def wordTopicalData(word)
+	index = WordNet::NounIndex.instance
+	topicalData = ""
+	lemma = index.find(word)
+	if(lemma != nil)
+		lemma.synsets.each{|a| topicalData = topicalData + processWordnetOutput(a.to_s)}
+		synset = lemma.synsets[0]
+	end
+	return topicalData.split(" ")
+end
+
+def getSensitive(sensitivesPath)
+	sensitiveTopics = Array.new
+	topic = Array.new;topic.push("")
+	File.open(sensitivesPath, "r") do |infile|
+		line = infile.gets
+		while (line = infile.gets)
+
+			if(line.eql?("#Topic\n"))
+				#done
+				sensitiveTopics.push(topic)
+				topic = Array.new;topic.push("")
+			else
+				#puts line
+				topic[0]= topic[0].concat(" #{line.delete("\n")}")
+				#puts topic[0]
+				topic.concat(wordTopicalData(line.delete("\n")))
+			end
+		end
+	end
+	sensitiveTopics.push(topic)
+	return sensitiveTopics
 end
 
 def wait()
@@ -39,12 +92,27 @@ system ("cls")
 #Here we declare and train our Bayes filter with identified messages
 
 subject = "bieber"
+sensitivesPath = "testCases/#{subject}/sensitive.txt"
 nbMessagesPath = "testCases/#{subject}/nb.txt"
 bMessagesPath = "testCases/#{subject}/b.txt"
 testMessagesPath = "testCases/#{subject}/test.txt"
 tagger = EngTagger.new
 classifier = Bishop::Bayes.new{ |probs,ignore| Bishop::robinson(probs, ignore) }
 
+
+#Sensitive Topics
+sensitiveTopics = getSensitive(sensitivesPath)
+sensitiveTopics.each do |topic|
+	puts "Topic: #{topic[0]} \n"
+	topic.delete_at(0)
+	puts topic.join(" ")
+	puts ""
+
+end
+
+wait() 
+
+#Training
 goodMessages = getMessages(nbMessagesPath )
 
 goodMessages.each do |m|
@@ -68,7 +136,7 @@ end
 testMessages = getMessages(testMessagesPath)
 testScores = Array.new
 scoreSum = 0;size = 0
-
+t1 = Time.now;
 testMessages.each do |m|
 	
 	check1 = 0
@@ -98,6 +166,7 @@ testMessages.each do |m|
 	
 
 end
+t2 = Time.now
 avgScore = scoreSum/size
 
 puts "Non-Bullying Messages"
@@ -145,10 +214,14 @@ end
 
 wait()
 puts "Bhive Filter Report"
+puts ""
+puts "#{subject} test case"
+puts ""
 puts "=Training Data"
 puts "  -# Good messages: #{ goodMessages.size()}"
 puts "  -# Bad messages: #{ badMessages.size()}"
 puts "=Testing Results"
+puts "  -Time Taken: #{t2-t1}"
 puts "  -Test Data Size: #{testMessages.size()}"
 puts "  -Average Probability: #{avgScore}"
 puts "  -Parsed Bullying Message: #{bCount}"
