@@ -41,25 +41,25 @@ end
 
 #url = "http://www.youtube.com/all_comments?v=kffacxfA7G4&page=1"
 
-File.open('commentsNew.txt', 'w') {|f|
+File.open('newComments.txt', 'w') {|f|
+
 
 page = 1
-videoID = "kffacxfA7G4"
-commentIndex = (page-1)*50+1
+
+for i in 0..5
+videoID = "kfVsfOSbJY0"
+puts i
+commentIndex = (i+page-1)*50+1
 url = "http://gdata.youtube.com/feeds/api/videos/#{videoID}/comments?max-results=50&start-index=#{commentIndex}"
 data = Nokogiri::HTML(open(url))
 
 data.xpath("//content").each do |element|
 	f.write("#Comment\n")
-	f.write(processString(element.text)+"\n")
+	f.write(processString(element.text)+"\n")	
+end
+	
 end
 
-=begin  
-	#Old method of extracting comments. Now depreciated
-	data.xpath("//div[@class='feedEntryContent']").each do |element|
-	  f.write("#Comment\n")
-	  f.write(element.text+"\n")
-	end
-=end
+
 
 }
