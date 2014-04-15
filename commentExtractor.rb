@@ -1,7 +1,6 @@
 require 'net/http'
 require 'open-uri'
 require 'nokogiri'
-require 'spellchecker'
 
 #TODO: consider [spelling checking with slangs as proper words] 
 #TODO: [A synonym filter that will take similar slangs, phrases and translate them into appropriate thematic words] 
@@ -36,30 +35,31 @@ end
 
 
 
-
+def getCommentsFrom(vID)
 #This is the main segment of the code that will extract the comments from a particular video
 
 #url = "http://www.youtube.com/all_comments?v=kffacxfA7G4&page=1"
+	puts "Downloading Comment Data"
+	File.open('newComments.txt', 'w') {|f|
 
-File.open('newComments.txt', 'w') {|f|
+
+		page = 1
+
+		for i in 0..5
+		videoID = vID
+		puts i
+		commentIndex = (i+page-1)*50+1
+		url = "http://gdata.youtube.com/feeds/api/videos/#{videoID}/comments?max-results=50&start-index=#{commentIndex}"
+		data = Nokogiri::HTML(open(url))
+
+		data.xpath("//content").each do |element|
+			f.write("#Comment\n")
+			f.write(processString(element.text)+"\n")	
+		end
+			
+		end
 
 
-page = 1
 
-for i in 0..5
-videoID = "kfVsfOSbJY0"
-puts i
-commentIndex = (i+page-1)*50+1
-url = "http://gdata.youtube.com/feeds/api/videos/#{videoID}/comments?max-results=50&start-index=#{commentIndex}"
-data = Nokogiri::HTML(open(url))
-
-data.xpath("//content").each do |element|
-	f.write("#Comment\n")
-	f.write(processString(element.text)+"\n")	
+	}
 end
-	
-end
-
-
-
-}
