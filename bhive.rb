@@ -2,7 +2,13 @@ require 'bishop'
 require 'obscenity'
 require 'engtagger'
 require 'wordnet'
+require 'lingua/stemmer'
+require 'spellingbee'
+require './commentExtractor'
 include WordNet
+
+@@stemmer= Lingua::Stemmer.new(:language => "eng")
+@@spellchecker = SpellingBee.new :source_text => 'us-dic.txt'
 
 #This simple code gets the comments from the formatted file and returns it as an array
 def getMessages(fileName)
@@ -44,9 +50,35 @@ def processWordnetOutput(text)
 		text = text.gsub(/ #{comm} /, ' ')
 	end
 =end
-	
-	
 	return text
+end
+
+def addToTrainingData(text)
+
+	
+end
+
+def spellCheckText(text)
+	newText=""
+	words = text.split(' ')
+	words.each do |w|
+		tempWords = @@spellchecker.correct(w)
+		tempWord = tempWords[0]
+		tempWords.each do |tw|
+			if(tw.eql?(w))
+				tempWord = tw
+			end
+		end
+		stemmed = tempWord
+		if(!tempWord.end_with?("e"))
+			stemmed = @@stemmer.stem(tempWord)
+		end
+
+
+		newText = newText+ " " + stemmed
+	end
+
+	return newText
 end
 
 def wordTopicalData(word)
@@ -89,15 +121,24 @@ def wait()
 end
 
 
+getCommentsFrom("kfVsfOSbJY0");
+
 system ("cls")
 #Here we declare and train our Bayes filter with identified messages
+=begin
+stemmer= Lingua::Stemmer.new(:language => "eng")
+puts stemmer.stem("quickly")
+s = SpellingBee.new :source_text => 'us-dic.txt'
+puts s.correct "speling" 
+=end
 
 subject = "rebecca"
 genSensitivePath = "testCases/#{subject}/genSensitives.txt"
 sensitivesPath = "testCases/#{subject}/sensitive.txt"
 nbMessagesPath = "testCases/#{subject}/nb.txt"
 bMessagesPath = "testCases/#{subject}/b.txt"
-testMessagesPath = "testCases/#{subject}/test.txt"
+#testMessagesPath = "testCases/#{subject}/test.txt"
+testMessagesPath = "newComments.txt"
 tagger = EngTagger.new
 classifier = Bishop::Bayes.new{ |probs,ignore| Bishop::robinson(probs, ignore) }
 
@@ -211,6 +252,7 @@ testScores.each do |score|
 		puts "Message #{nbCount+1}  --------------------------------------------"
 		puts "Probability: #{score.round(3)}"
 		puts "Confidence: #{((avgScore - score)/avgScore).round(3)}"
+		puts spellCheckText(testMessages[i])
 		puts testMessages[i]
 		puts "";puts ""
 		counter = counter + 1
